@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_5/data/categories.dart';
 import 'package:flutter_application_5/models/category.dart';
-//import 'package:flutter_application_5/models/grocery_item.dart';
 import 'package:http/http.dart' as http;
 
 class NewItem extends StatefulWidget {
@@ -104,12 +103,12 @@ class _NewItemState extends State<NewItem> {
                             },
                             child: const Text("Reset")),
                         ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (_formKey.currentState!.validate()) {
                                 _formKey.currentState!.save();
                                 final Uri url = Uri.parse(
                                     "https://shop-44cef-default-rtdb.firebaseio.com/shopping-list.json");
-                                http.post(url,
+                                final http.Response res = await http.post(url,
                                     headers: {
                                       'Content-Type': 'application/json'
                                     },
@@ -118,7 +117,9 @@ class _NewItemState extends State<NewItem> {
                                       'quantity': _enteredQuantity,
                                       'category': _selectedCategory.title
                                     }));
-                                //Navigator.of(context).pop();
+                                if (res.statusCode == 200) {
+                                  Navigator.of(context).pop();
+                                }
                               }
                             },
                             child: const Text("Add Item"))
