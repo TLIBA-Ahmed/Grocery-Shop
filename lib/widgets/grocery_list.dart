@@ -16,6 +16,7 @@ class GroceryList extends StatefulWidget {
 
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -26,6 +27,10 @@ class _GroceryListState extends State<GroceryList> {
   @override
   Widget build(BuildContext context) {
     Widget content = const Center(child: Text("You have no items added yet"));
+
+    if (_isLoading){
+      content = const Center(child: CircularProgressIndicator(),);
+    }
     if (_groceryItems.isNotEmpty) {
       content = ListView.builder(
         itemCount: _groceryItems.length,
@@ -73,27 +78,34 @@ class _GroceryListState extends State<GroceryList> {
         "https://shop-44cef-default-rtdb.firebaseio.com/shopping-list.json");
     final http.Response res = await http.get(url);
     final Map<String, dynamic> loadedData = json.decode(res.body);
-    final List<GroceryItem> _loadedItems = [];
+    final List<GroceryItem> loadedItems = [];
     for (var item in loadedData.entries) {
       final Category category = categories.entries
           .firstWhere(
               (element) => element.value.title == item.value['category'])
           .value;
-      _loadedItems.add(GroceryItem(
+      loadedItems.add(GroceryItem(
           id: item.key,
           name: item.value['name'],
           quantity: item.value['quantity'],
           category: category));
 
       setState(() {
-        _groceryItems = _loadedItems;
+        _groceryItems = loadedItems;
+        _isLoading = false;
       });
     }
   }
 
   _addItem() async {
-    await Navigator.of(context).push<GroceryItem>(
+    final newItem = await Navigator.of(context).push<GroceryItem>(
         MaterialPageRoute(builder: (ctx) => const NewItem()));
     _loadData();
+    if (newItem == null) {
+      return;
+    }
+    setState(() {
+      _groceryItems.add(newItem);
+    });
   }
 }

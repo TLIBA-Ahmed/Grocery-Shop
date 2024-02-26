@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_5/data/categories.dart';
 import 'package:flutter_application_5/models/category.dart';
+import 'package:flutter_application_5/models/grocery_item.dart';
 import 'package:http/http.dart' as http;
 
 class NewItem extends StatefulWidget {
@@ -16,6 +17,37 @@ class _NewItemState extends State<NewItem> {
   String _enteredName = "";
   int _enteredQuantity = 0;
   var _selectedCategory = categories[Categories.fruit]!;
+  bool _isLoading = false;
+
+  void _saveItem() {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      setState(() {
+        _isLoading = true;
+      });
+      final Uri url = Uri.parse(
+          "https://shop-44cef-default-rtdb.firebaseio.com/shopping-list.json");
+      http
+          .post(url,
+              headers: {'Content-Type': 'application/json'},
+              body: json.encode({
+                'name': _enteredName,
+                'quantity': _enteredQuantity,
+                'category': _selectedCategory.title
+              }))
+          .then((res) {
+        final Map<String, dynamic> resData = json.decode(res.body);
+        if (res.statusCode == 200) {
+          Navigator.of(context).pop(GroceryItem(
+              id: resData['name'],
+              name: _enteredName,
+              quantity: _enteredQuantity,
+              category: _selectedCategory));
+        }
+      });
+    }
+  }
+
   final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
@@ -98,31 +130,20 @@ class _NewItemState extends State<NewItem> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                            onPressed: () {
-                              _formKey.currentState!.reset();
-                            },
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    _formKey.currentState!.reset();
+                                  },
                             child: const Text("Reset")),
                         ElevatedButton(
-                            onPressed: () async {
-                              if (_formKey.currentState!.validate()) {
-                                _formKey.currentState!.save();
-                                final Uri url = Uri.parse(
-                                    "https://shop-44cef-default-rtdb.firebaseio.com/shopping-list.json");
-                                final http.Response res = await http.post(url,
-                                    headers: {
-                                      'Content-Type': 'application/json'
-                                    },
-                                    body: json.encode({
-                                      'name': _enteredName,
-                                      'quantity': _enteredQuantity,
-                                      'category': _selectedCategory.title
-                                    }));
-                                if (res.statusCode == 200) {
-                                  Navigator.of(context).pop();
-                                }
-                              }
-                            },
-                            child: const Text("Add Item"))
+                            onPressed: _isLoading ? null : _saveItem,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator())
+                                : const Text("Add Item"))
                       ],
                     )
                   ],
