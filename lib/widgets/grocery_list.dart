@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_application_5/data/categories.dart';
+import 'package:flutter_application_5/data/dummy_items.dart';
 import 'package:flutter_application_5/models/category.dart';
 import 'package:flutter_application_5/models/grocery_item.dart';
 import 'package:flutter_application_5/widgets/new_item.dart';
@@ -17,6 +18,7 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
   bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -28,8 +30,10 @@ class _GroceryListState extends State<GroceryList> {
   Widget build(BuildContext context) {
     Widget content = const Center(child: Text("You have no items added yet"));
 
-    if (_isLoading){
-      content = const Center(child: CircularProgressIndicator(),);
+    if (_isLoading) {
+      content = const Center(
+        child: CircularProgressIndicator(),
+      );
     }
     if (_groceryItems.isNotEmpty) {
       content = ListView.builder(
@@ -37,9 +41,7 @@ class _GroceryListState extends State<GroceryList> {
         itemBuilder: (ctx, index) => Dismissible(
           key: ValueKey(_groceryItems[index].id),
           onDismissed: (_) {
-            setState(() {
-              _groceryItems.remove(_groceryItems[index]);
-            });
+            _removeItem(groceryItems[index]);
           },
           child: ListTile(
             title: Text(
@@ -57,6 +59,12 @@ class _GroceryListState extends State<GroceryList> {
         ),
       );
     }
+    if (_error != null) {
+      content = Center(
+        child: Text(_error!)
+      );
+    }
+
     return Scaffold(
         appBar: AppBar(
           title: const Text(
@@ -73,12 +81,28 @@ class _GroceryListState extends State<GroceryList> {
         body: content);
   }
 
+  void _removeItem(GroceryItem item) {
+    final url = Uri.parse(
+        "https://shop-44cef-default-rtdb.firebaseio.com/shopping-list/${item.id}.json");
+    http.delete(url);
+    
+    return setState(() {
+            _groceryItems.remove(item);
+          });
+  }
+
   void _loadData() async {
     final url = Uri.parse(
         "https://shop-44cef-default-rtdb.firebaseio.com/shopping-list.json");
     final http.Response res = await http.get(url);
     final Map<String, dynamic> loadedData = json.decode(res.body);
     final List<GroceryItem> loadedItems = [];
+    if (res.statusCode > 399) {
+      setState(() {
+        _error = 'Failed to fetch data, Please try again';      
+    });
+      
+    }
     for (var item in loadedData.entries) {
       final Category category = categories.entries
           .firstWhere(
