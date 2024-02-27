@@ -60,9 +60,7 @@ class _GroceryListState extends State<GroceryList> {
       );
     }
     if (_error != null) {
-      content = Center(
-        child: Text(_error!)
-      );
+      content = Center(child: Text(_error!));
     }
 
     return Scaffold(
@@ -81,14 +79,24 @@ class _GroceryListState extends State<GroceryList> {
         body: content);
   }
 
-  void _removeItem(GroceryItem item) {
-    final url = Uri.parse(
-        "https://shop-44cef-default-rtdb.firebaseio.com/shopping-list/${item.id}.json");
-    http.delete(url);
+  void _removeItem(GroceryItem item) async {
+    final index = _groceryItems.indexOf(item);
+    final url = Uri.https("shop-44cef-default-rtdb.firebaseio.com",
+        'shopping-list/${item.id}.json');
+   
+
+    setState(() {
+      _groceryItems.remove(item);
+    });
     
-    return setState(() {
-            _groceryItems.remove(item);
-          });
+     final res = await http.delete(url);
+     if (res.statusCode > 399) {
+      setState(() {
+        return setState(() {
+      _groceryItems.insert(index, item);
+    });
+      });
+    }
   }
 
   void _loadData() async {
@@ -99,9 +107,8 @@ class _GroceryListState extends State<GroceryList> {
     final List<GroceryItem> loadedItems = [];
     if (res.statusCode > 399) {
       setState(() {
-        _error = 'Failed to fetch data, Please try again';      
-    });
-      
+        _error = 'Failed to fetch data, Please try again';
+      });
     }
     for (var item in loadedData.entries) {
       final Category category = categories.entries
