@@ -81,20 +81,22 @@ class _GroceryListState extends State<GroceryList> {
 
   void _removeItem(GroceryItem item) async {
     final index = _groceryItems.indexOf(item);
-    final url = Uri.https("shop-44cef-default-rtdb.firebaseio.com",
+    final url = Uri.https('shop-44cef-default-rtdb.firebaseio.com',
         'shopping-list/${item.id}.json');
-   
 
     setState(() {
       _groceryItems.remove(item);
     });
-    
-     final res = await http.delete(url);
-     if (res.statusCode > 399) {
+
+    final res = await http.delete(url);
+    if (res.statusCode > 399) {
+      ScaffoldMessenger.of(context).showSnackBar(
+       const SnackBar(content: Text("We could not delte the item"))
+      );
       setState(() {
         return setState(() {
-      _groceryItems.insert(index, item);
-    });
+          _groceryItems.insert(index, item);
+        });
       });
     }
   }
