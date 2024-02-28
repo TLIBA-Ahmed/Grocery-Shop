@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_application_5/data/categories.dart';
 import 'package:flutter_application_5/data/dummy_items.dart';
@@ -91,8 +90,7 @@ class _GroceryListState extends State<GroceryList> {
     final res = await http.delete(url);
     if (res.statusCode > 399) {
       ScaffoldMessenger.of(context).showSnackBar(
-       const SnackBar(content: Text("We could not delte the item"))
-      );
+          const SnackBar(content: Text("We could not delte the item")));
       setState(() {
         return setState(() {
           _groceryItems.insert(index, item);
@@ -105,27 +103,43 @@ class _GroceryListState extends State<GroceryList> {
     final url = Uri.parse(
         "https://shop-44cef-default-rtdb.firebaseio.com/shopping-list.json");
     final http.Response res = await http.get(url);
+    if (json.decode(res.body) == null) {
+      // or      if (res.body == 'null')
+      setState(() {
+        _isLoading = false;
+      });
+
+      return;
+    }
+
     final Map<String, dynamic> loadedData = json.decode(res.body);
     final List<GroceryItem> loadedItems = [];
-    if (res.statusCode > 399) {
+    try {
+      if (res.statusCode > 399) {
+        setState(() {
+          _error = 'Failed to fetch data, Please try again';
+        });
+        return;
+      }
+      for (var item in loadedData.entries) {
+        final Category category = categories.entries
+            .firstWhere(
+                (element) => element.value.title == item.value['category'])
+            .value;
+        loadedItems.add(GroceryItem(
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: category));
+
+        setState(() {
+          _groceryItems = loadedItems;
+          _isLoading = false;
+        });
+      }
+    } catch (err) {
       setState(() {
         _error = 'Failed to fetch data, Please try again';
-      });
-    }
-    for (var item in loadedData.entries) {
-      final Category category = categories.entries
-          .firstWhere(
-              (element) => element.value.title == item.value['category'])
-          .value;
-      loadedItems.add(GroceryItem(
-          id: item.key,
-          name: item.value['name'],
-          quantity: item.value['quantity'],
-          category: category));
-
-      setState(() {
-        _groceryItems = loadedItems;
-        _isLoading = false;
       });
     }
   }
