@@ -102,7 +102,9 @@ class _GroceryListState extends State<GroceryList> {
   void _loadData() async {
     final url = Uri.parse(
         "https://shop-44cef-default-rtdb.firebaseio.com/shopping-list.json");
-    final http.Response res = await http.get(url);
+    final http.Response res = await http.get(url).catchError((_) {
+      return http.Response('',400);
+    });
     if (json.decode(res.body) == null) {
       // or      if (res.body == 'null')
       setState(() {
